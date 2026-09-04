@@ -15,8 +15,8 @@ def query(sql, database=_CLICKHOUSE_DB):
     # Execute un SELECT et retourne les lignes.
     resp = httpx.post(
         _CLICKHOUSE_URL,
-        params={"database": database, "user": _CLICKHOUSE_USER},
-        auth=(_CLICKHOUSE_USER, _CLICKHOUSE_PASS),
+        params={"database": database, "user": _CLICKHOUSE_USER,
+        "password": _CLICKHOUSE_PASS},
         content=sql + " FORMAT JSON",
     )
     resp.raise_for_status()
@@ -26,8 +26,8 @@ def execute(sql, database=_CLICKHOUSE_DB):
     # Execute un DDL/INSERT (pas de retour).
     httpx.post(
         _CLICKHOUSE_URL,
-        params={"database": database, "user": _CLICKHOUSE_USER},
-        auth=(_CLICKHOUSE_USER, _CLICKHOUSE_PASS),
+        params={"database": database, "user": _CLICKHOUSE_USER,
+        "password": _CLICKHOUSE_PASS},
         content=sql,
     ).raise_for_status()
 
