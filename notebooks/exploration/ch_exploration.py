@@ -1,33 +1,47 @@
-import marimo as mo
-import httpx
-import os
+import marimo
 
-CLICKHOUSE_URL = os.environ.get("CLICKHOUSE_HTTP_URL", "http://clickhouse:8123")
-CLICKHOUSE_USER = os.environ.get("CLICKHOUSE_USER", "default")
-try:
-    CLICKHOUSE_PASSWORD = os.environ.get("CLICKHOUSE_PASSWORD", "") or open("/tmp/ch_pwd.txt").read().strip()
-except Exception:
-    CLICKHOUSE_PASSWORD = ""
-CLICKHOUSE_DB = os.environ.get("CLICKHOUSE_DATABASE", "warehouse")
+__generated_with = "0.13.15"
+app = marimo.App(width="medium")
 
-def ch_query(sql):
-    # Execute une requete ClickHouse et retourne les resultats.
-    resp = httpx.post(
-        CLICKHOUSE_URL,
-        params={"database": CLICKHOUSE_DB, "user": CLICKHOUSE_USER},
-        auth=(CLICKHOUSE_USER, CLICKHOUSE_PASSWORD),
-        content=sql + " FORMAT JSON",
-    )
-    resp.raise_for_status()
-    return resp.json()["data"]
-
-app = mo.App()
 
 @app.cell
 def _():
+    import os
+
+    import httpx
+    import marimo as mo
+    return httpx, mo, os
+
+
+@app.cell
+def _(httpx, os):
+    # --- Connexion ClickHouse via HTTP (code tuto officiel) ---
+    CLICKHOUSE_URL = "http://clickhouse:8123"
+    CLICKHOUSE_USER = "default"
+    CLICKHOUSE_DB = "warehouse"
     try:
-        tables = ch_query("SHOW TABLES")
-        mo.table(tables)
-    except Exception as e:
-        mo.md(f"Erreur ClickHouse: {e}")
-    return
+        CLICKHOUSE_PASSWORD = os.environ.get("CLICKHOUSE_PASSWORD", "") or open("/tmp/ch_pwd.txt").read().strip()
+    except Exception:
+        CLICKHOUSE_PASSWORD = ""
+
+    def ch_query(sql):
+        resp = httpx.post(
+            CLICKHOUSE_URL,
+            params={"database": CLICKHOUSE_DB, "user": CLICKHOUSE_USER, "password": CLICKHOUSE_PASSWORD},
+            content=sql + " FORMAT JSON",
+        )
+        resp.raise_for_status()
+        return resp.json()["data"]
+    return (ch_query,)
+
+
+@app.cell
+def _(ch_query, mo):
+    # --- Requete d'exploration ---
+    tables = ch_query("SHOW TABLES")
+    mo.md(str(tables))
+    return (tables,)
+
+
+if __name__ == "__main__":
+    app.run()
